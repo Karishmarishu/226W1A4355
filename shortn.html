@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>URL Shortener</title>
+<style>
+  body { font-family: Arial, sans-serif; }
+  .container { max-width: 600px; margin:40px auto; padding:20px; background:#f9f9f9; border:1px solid #ddd; border-radius:8px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>URL Shortener</h1>
+  <form id="url-form">
+    <input type="text" id="original-url" placeholder="https://..." required style="width:80%">
+    <button type="submit">Shorten URL</button>
+  </form>
+  <div id="results"></div>
+  <div id="statistics"></div>
+</div>
+<script>
+  const form=document.getElementById('url-form');
+  const resultsDiv=document.getElementById('results');
+  const statisticsDiv=document.getElementById('statistics');
+
+  form.addEventListener('submit', async e=>{
+    e.preventDefault();
+    const originalUrl=document.getElementById('original-url').value;
+    if(!originalUrl.startsWith('http')) return alert('Invalid URL');
+    const resp=await fetch('/shorten-url', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ originalUrl })
+    });
+    const data=await resp.json();
+    if(data.error) return alert(data.error);
+    const { shortenedUrl, expiryDate } = data;
+    resultsDiv.innerHTML += `
+      <p>Original URL: ${originalUrl}</p>
+      <p>Shortened URL: <a href="${shortenedUrl}" target="_blank">${shortenedUrl}</a></p>
+      <p>Expiry Date: ${expiryDate}</p><hr>`;
+    const stats = JSON.parse(localStorage.getItem('statistics')||'[]');
+    stats.push({ originalUrl, shortenedUrl, expiryDate });
+    localStorage.setItem('statistics', JSON.stringify(stats));
+    displayStatistics();
+  });
+
+  function displayStatistics(){
+    const stats = JSON.parse(localStorage.getItem('statistics')||'[]');
+    statisticsDiv.innerHTML = stats.map(s=>`
+      <p>Original: ${s.originalUrl}<br>
+      Short: <a href="${s.shortenedUrl}" target="_blank">${s.shortenedUrl}</a><br>
+      Expiry: ${s.expiryDate}</p><hr>
+    `).join('');
+  }
+  displayStatistics();
+</script>
+</body>
+</html>
+
